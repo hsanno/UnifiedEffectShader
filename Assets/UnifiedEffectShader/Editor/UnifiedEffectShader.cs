@@ -9,6 +9,8 @@ namespace UnifiedEffect
     public class EffectShader : ShaderGUI
     {
         MaterialProperty maintex;
+        MaterialProperty color;
+        MaterialProperty isVertexColorEnabled;
 
         MaterialEditor materialEditor;
         bool isFirstTimeApplying;
@@ -16,6 +18,8 @@ namespace UnifiedEffect
         public void FindProperties(MaterialProperty[] props)
         {
             maintex = FindProperty("_MainTex", props);
+            color = FindProperty("_Color", props);
+            isVertexColorEnabled = FindProperty("_IsVertexColorEnabled", props);
         }
 
         public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] props)
@@ -45,6 +49,8 @@ namespace UnifiedEffect
             using (var check = new EditorGUI.ChangeCheckScope())
             {
                 materialEditor.DefaultShaderProperty(maintex, "Texture");
+                materialEditor.DefaultShaderProperty(color, "Color");
+                Toggle(isVertexColorEnabled, "Vertex Color");
 
                 if (check.changed)
                 {
@@ -52,6 +58,48 @@ namespace UnifiedEffect
                 }
             }
         }
+
+        #region GUI Utilities
+
+        class MixedValueGroup : GUI.Scope
+        {
+            bool parentValue;
+
+            public MixedValueGroup(bool showMixedValue)
+            {
+                parentValue = EditorGUI.showMixedValue;
+                EditorGUI.showMixedValue = parentValue || showMixedValue;
+            }
+
+            protected override void CloseScope()
+            {
+                EditorGUI.showMixedValue = parentValue;
+            }
+        }
+
+        static bool Toggle(MaterialProperty property, string label, params GUILayoutOption[] options)
+        {
+            using (new MixedValueGroup(property.hasMixedValue))
+            using (var check = new EditorGUI.ChangeCheckScope())
+            {
+                bool enabled = Mathf.Approximately(1.0f, property.floatValue);
+                enabled = EditorGUILayout.Toggle(label, enabled, options);
+
+                if (check.changed)
+                {
+                    property.floatValue = enabled ? 1.0f : 0.0f;
+                }
+            }
+
+            return IsToggleEnabled(property);
+        }
+
+        static bool IsToggleEnabled(MaterialProperty property)
+        {
+            return property.hasMixedValue || Mathf.Approximately(1.0f, property.floatValue);
+        }
+
+        #endregion
 
         static void MaterialsChanged(Material[] materials)
         {
