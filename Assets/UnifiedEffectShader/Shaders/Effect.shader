@@ -63,4 +63,7 @@
             ENDHLSL
         }
     }
+
+    Fallback Off
+    CustomEditor "UnifiedEffect.EffectShader"
 }
